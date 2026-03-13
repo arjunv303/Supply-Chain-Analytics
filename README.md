@@ -1,14 +1,56 @@
-# Retail Supply Chain & Demand Intelligence Dashboard
+# Retail Supply Chain & Demand Intelligence
 
-**A Business Analytics portfolio project demonstrating end-to-end supply chain analytics using PostgreSQL, Python (AI/ML), and Tableau Public.**
+**End-to-end supply chain analytics project using PostgreSQL, Python, and Tableau Public.**
 
 Dataset: [Olist Brazilian E-Commerce](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) — 100,000+ real orders, 9 relational tables
 
 ---
 
+## Why I Built This
+
+I wanted to go beyond the SQL and Tableau work I did at Fannie Mae and build something end-to-end on my own. Supply chain analytics caught my attention because it's data-heavy and touches every part of a business — from vendors to customers to regional demand.
+
+I used the Olist Brazilian E-Commerce dataset because it's a real production dataset with 9 relational tables, which forced me to think about joins, data quality, and schema design rather than working with a clean pre-built CSV.
+
+The AI forecasting piece (Prophet + Isolation Forest) was a stretch goal — I wanted to see how ML outputs could be integrated directly into a BI dashboard rather than staying in a notebook.
+
+---
+
 ## Project Overview
 
-This project analyzes an e-commerce supply chain through four interconnected analytical lenses:
+| Dashboard | Business Question | Key Metrics |
+|---|---|---|
+| Executive KPI | How is the supply chain performing overall? | Fulfillment rate, on-time delivery %, lead time, revenue |
+| Seller Scorecard | Which vendors are reliable vs. at-risk? | Composite performance score, review score, delivery rate |
+| Regional Demand | Where is demand concentrated and growing? | Revenue by state, demand-supply gap, avg order value |
+| AI Demand Forecast | What does demand look like for the next 90 days? | Prophet forecast, anomaly flags, confidence intervals |
+
+---
+
+## Dashboards
+
+### Dashboard 1 — Executive KPI Overview
+![Executive KPI Dashboard](images/dashboard1_executive_kpi.png)
+
+### Dashboard 2 — Seller Performance Scorecard
+![Seller Scorecard Dashboard](images/dashboard2_seller_scorecard.png)
+
+### Dashboard 3 — Regional Demand Map
+![Regional Demand Dashboard](images/dashboard3_regional_demand.png)
+
+### Dashboard 4 — AI-Powered Demand Forecast
+![AI Forecast Dashboard](images/dashboard4_ai_forecast.png)
+
+---
+
+## Project Overview (Detail)
+
+| Dashboard | Business Question | Key Metrics |
+|---|---|---|
+| Executive KPI | How is the supply chain performing overall? | Fulfillment rate, on-time delivery %, lead time, revenue |
+| Seller Scorecard | Which vendors are reliable vs. at-risk? | Composite performance score, review score, delivery rate |
+| Regional Demand | Where is demand concentrated and growing? | Revenue by state, demand-supply gap, avg order value |
+| AI Demand Forecast | What does demand look like for the next 90 days? | Prophet forecast, anomaly flags, confidence intervals |
 
 | Dashboard | Business Question | Key Metrics |
 |---|---|---|
@@ -157,7 +199,7 @@ Vendors are scored using a weighted model:
 - **30%** — Average customer review score (normalized 0–100)
 - **30%** — Revenue rank (normalized 0–100)
 
-This creates an objective, multi-dimensional supplier evaluation — applicable in any procurement or vendor management role.
+This gives each seller a single comparable score rather than looking at metrics in isolation.
 
 ### Demand Forecasting with Prophet
 Facebook Prophet handles:
@@ -180,7 +222,7 @@ Flagged anomalies are automatically labeled (Black Friday, Carnaval, etc.) and v
 
 ## SQL Highlights
 
-The SQL layer demonstrates advanced techniques expected at mid-to-senior BA levels:
+The SQL scripts cover the full analytical workflow — from data quality checks to KPI aggregation to materialized views for Tableau:
 
 - **Window functions:** `RANK()`, `LAG()`, `SUM() OVER()`, `MIN() OVER()`
 - **CTEs:** Multi-step analytical logic broken into readable named steps
@@ -190,9 +232,7 @@ The SQL layer demonstrates advanced techniques expected at mid-to-senior BA leve
 
 ---
 
-## Results Summary
-
-> Note: Your exact numbers will vary based on Olist dataset version
+## Results
 
 | Metric | Value |
 |---|---|
