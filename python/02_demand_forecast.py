@@ -1,30 +1,3 @@
-"""
-02_demand_forecast.py
-=====================
-AI-Powered Demand Forecasting using Facebook Prophet.
-
-What this script does:
-  1. Pulls daily order counts per product category from PostgreSQL
-  2. Trains a separate Prophet model for each of the top 5 categories
-  3. Generates a 90-day forward forecast with confidence intervals
-  4. Combines historical + forecast data into one clean CSV for Tableau
-
-WHY PROPHET?
-  - Developed at Meta, widely used in industry for business forecasting
-  - Handles seasonality (weekly, yearly), holidays, and trend changes automatically
-  - Much more robust than naive smoothing or ARIMA for irregular e-commerce data
-  - Adding this to your portfolio immediately separates you from BA candidates
-    who only use Excel trend lines
-
-OUTPUT:
-  data/tableau_exports/forecast_output.csv
-  Columns: order_date, category, daily_orders, forecast, lower_bound, upper_bound,
-           is_forecast (True/False)
-
-USAGE:
-  python 02_demand_forecast.py
-"""
-
 import os
 import warnings
 import pandas as pd
@@ -34,10 +7,6 @@ from dotenv import load_dotenv
 
 warnings.filterwarnings("ignore")
 
-# ──────────────────────────────────────────────
-# CONFIG
-# ──────────────────────────────────────────────
-
 load_dotenv()
 
 DB_HOST     = os.getenv("DB_HOST", "localhost")
@@ -46,14 +15,13 @@ DB_NAME     = os.getenv("DB_NAME", "supply_chain")
 DB_USER     = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 
-FORECAST_DAYS   = 90     # How many days ahead to forecast
-TOP_N_CATEGORIES = 5     # Forecast only the top N categories by order volume
-MIN_HISTORY_DAYS = 180   # Minimum days of data required to train Prophet
+FORECAST_DAYS    = 90
+TOP_N_CATEGORIES = 5
+MIN_HISTORY_DAYS = 180
 
 OUTPUT_DIR  = os.path.join(os.path.dirname(__file__), "..", "data", "tableau_exports")
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "forecast_output.csv")
 
-# Brazilian national holidays (for Prophet's holiday regressor)
 BRAZIL_HOLIDAYS = pd.DataFrame({
     "holiday": [
         "Carnaval", "Carnaval", "Carnaval",
@@ -84,119 +52,81 @@ BRAZIL_HOLIDAYS = pd.DataFrame({
 })
 
 
-# ──────────────────────────────────────────────
-# DATA LOADING
-# ──────────────────────────────────────────────
-
 def get_engine():
     url = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     return create_engine(url, echo=False)
 
 
 def load_daily_orders(engine):
-    """Pull daily order counts per category from the Tableau view."""
     query = """
-        SELECT
-            order_date,
-            category,
-            daily_orders,
-            daily_revenue
+        SELECT order_date, category, daily_orders, daily_revenue
         FROM olist.vw_category_daily_orders
         ORDER BY order_date, category
     """
-    print("[INFO] Loading daily order data from PostgreSQL...")
+    print("[INFO] Loading daily order data...")
     df = pd.read_sql(text(query), con=engine.connect())
     df["order_date"] = pd.to_datetime(df["order_date"])
-    print(f"  Loaded {len(df):,} rows | "
-          f"{df['order_date'].min().date()} to {df['order_date'].max().date()}")
+    print(f"  {len(df):,} rows | {df['order_date'].min().date()} to {df['order_date'].max().date()}")
     return df
 
 
 def get_top_categories(df, n=TOP_N_CATEGORIES):
-    """Return the top N categories by total order volume."""
     top = (
         df.groupby("category")["daily_orders"]
-        .sum()
-        .sort_values(ascending=False)
-        .head(n)
-        .index.tolist()
+        .sum().sort_values(ascending=False).head(n).index.tolist()
     )
-    print(f"\n[INFO] Top {n} categories by order volume:")
+    print(f"\n[INFO] Top {n} categories:")
     for i, cat in enumerate(top, 1):
-        vol = df[df["category"] == cat]["daily_orders"].sum()
-        print(f"  {i}. {cat} ({vol:,} orders)")
+        print(f"  {i}. {cat} ({df[df['category'] == cat]['daily_orders'].sum():,} orders)")
     return top
 
 
-# ──────────────────────────────────────────────
-# PROPHET FORECASTING
-# ──────────────────────────────────────────────
-
 def train_and_forecast(category_df, category_name, forecast_days):
-    """
-    Train Prophet model on one category and return combined
-    historical + forecast DataFrame.
-    """
     try:
         from prophet import Prophet
     except ImportError:
-        raise ImportError(
-            "Prophet not installed. Run: pip install prophet\n"
-            "Note: Prophet requires pystan. On M1/M2 Mac, use conda if pip fails."
-        )
+        raise ImportError("Run: pip install prophet")
 
-    # Prophet requires columns named 'ds' (date) and 'y' (value)
     train = category_df[["order_date", "daily_orders"]].rename(
         columns={"order_date": "ds", "daily_orders": "y"}
     )
-
-    # Fill missing dates with 0 (no orders on that day)
     date_range = pd.date_range(train["ds"].min(), train["ds"].max(), freq="D")
     train = train.set_index("ds").reindex(date_range, fill_value=0).reset_index()
     train.columns = ["ds", "y"]
 
     if len(train) < MIN_HISTORY_DAYS:
-        print(f"  [SKIP] {category_name}: only {len(train)} days of history "
-              f"(need {MIN_HISTORY_DAYS})")
+        print(f"  [SKIP] {category_name}: only {len(train)} days of history")
         return None
 
-    # Configure Prophet
     model = Prophet(
         yearly_seasonality=True,
         weekly_seasonality=True,
         daily_seasonality=False,
         holidays=BRAZIL_HOLIDAYS,
-        seasonality_mode="multiplicative",   # e-commerce demand scales multiplicatively
-        changepoint_prior_scale=0.1,          # conservative trend changes
-        interval_width=0.80,                  # 80% confidence interval
+        seasonality_mode="multiplicative",
+        changepoint_prior_scale=0.1,
+        interval_width=0.80,
     )
-
     model.fit(train)
 
-    # Create future dataframe
     future = model.make_future_dataframe(periods=forecast_days, freq="D")
     forecast = model.predict(future)
 
-    # Combine historical + forecast
     historical = train.copy()
-    historical["is_forecast"]   = False
-    historical["forecast"]      = historical["y"]
-    historical["lower_bound"]   = historical["y"]
-    historical["upper_bound"]   = historical["y"]
+    historical["is_forecast"]  = False
+    historical["forecast"]     = historical["y"]
+    historical["lower_bound"]  = historical["y"]
+    historical["upper_bound"]  = historical["y"]
 
     future_only = forecast[forecast["ds"] > train["ds"].max()].copy()
-    future_only["y"]            = np.nan
-    future_only["is_forecast"]  = True
+    future_only["y"]           = np.nan
+    future_only["is_forecast"] = True
     future_only = future_only.rename(columns={
-        "yhat":       "forecast",
-        "yhat_lower": "lower_bound",
-        "yhat_upper": "upper_bound",
+        "yhat": "forecast", "yhat_lower": "lower_bound", "yhat_upper": "upper_bound"
     })
 
-    # Clip negative forecast values (can't have negative orders)
-    future_only["forecast"]    = future_only["forecast"].clip(lower=0)
-    future_only["lower_bound"] = future_only["lower_bound"].clip(lower=0)
-    future_only["upper_bound"] = future_only["upper_bound"].clip(lower=0)
+    for col in ["forecast", "lower_bound", "upper_bound"]:
+        future_only[col] = future_only[col].clip(lower=0)
 
     combined = pd.concat([
         historical[["ds", "y", "forecast", "lower_bound", "upper_bound", "is_forecast"]],
@@ -205,61 +135,36 @@ def train_and_forecast(category_df, category_name, forecast_days):
 
     combined.rename(columns={"ds": "order_date", "y": "actual_orders"}, inplace=True)
     combined["category"] = category_name
-
     return combined
 
 
-# ──────────────────────────────────────────────
-# MAIN
-# ──────────────────────────────────────────────
-
 def main():
-    print("="*55)
-    print("DEMAND FORECASTING — Facebook Prophet")
-    print(f"Forecast horizon: {FORECAST_DAYS} days")
-    print("="*55)
+    print(f"DEMAND FORECASTING — Facebook Prophet ({FORECAST_DAYS}-day horizon)")
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-    # Load data
     engine = get_engine()
     daily_df = load_daily_orders(engine)
     top_cats = get_top_categories(daily_df)
 
-    # Train Prophet on each top category
     all_forecasts = []
     for cat in top_cats:
-        print(f"\n[TRAINING] Category: {cat}")
-        cat_df = daily_df[daily_df["category"] == cat].copy()
-        result = train_and_forecast(cat_df, cat, FORECAST_DAYS)
+        print(f"\n[TRAINING] {cat}")
+        result = train_and_forecast(daily_df[daily_df["category"] == cat].copy(), cat, FORECAST_DAYS)
         if result is not None:
             all_forecasts.append(result)
-            actual_rows   = result[~result["is_forecast"]].shape[0]
-            forecast_rows = result[result["is_forecast"]].shape[0]
-            print(f"  [OK] {actual_rows} historical days + {forecast_rows} forecast days")
+            print(f"  {result[~result['is_forecast']].shape[0]} historical + {result[result['is_forecast']].shape[0]} forecast days")
 
     if not all_forecasts:
-        print("\n[ERROR] No categories had enough data to forecast.")
+        print("\n[ERROR] No categories had enough data.")
         return
 
-    # Combine and export
     output_df = pd.concat(all_forecasts, ignore_index=True)
     output_df["order_date"] = output_df["order_date"].dt.strftime("%Y-%m-%d")
-
-    # Round numeric columns for clean CSV
     for col in ["actual_orders", "forecast", "lower_bound", "upper_bound"]:
         output_df[col] = output_df[col].round(2)
 
     output_df.to_csv(OUTPUT_FILE, index=False)
-
-    print("\n" + "="*55)
-    print(f"[DONE] Forecast saved to:")
-    print(f"  {OUTPUT_FILE}")
-    print(f"  Total rows: {len(output_df):,}")
-    print(f"  Categories: {output_df['category'].nunique()}")
-    print(f"  Forecast rows: {output_df['is_forecast'].sum():,}")
-    print("="*55)
-    print("\nNext step: python 03_anomaly_detection.py")
+    print(f"\n[DONE] {len(output_df):,} rows saved to {OUTPUT_FILE}")
 
 
 if __name__ == "__main__":

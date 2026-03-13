@@ -1,13 +1,4 @@
--- =============================================================================
--- 07_tableau_views.sql
--- Supply Chain Analytics - Views for Tableau Export
--- =============================================================================
-
 SET search_path TO olist;
-
--- =============================================================================
--- VIEW 1: EXECUTIVE KPI DASHBOARD
--- =============================================================================
 
 DROP VIEW IF EXISTS vw_exec_kpis;
 CREATE VIEW vw_exec_kpis AS
@@ -16,12 +7,10 @@ SELECT
     COUNT(DISTINCT o.order_id)                                          AS total_orders,
     COUNT(DISTINCT o.order_id) FILTER (WHERE o.order_status = 'delivered') AS delivered_orders,
     COUNT(DISTINCT o.order_id) FILTER (WHERE o.order_status = 'canceled')  AS canceled_orders,
-
     ROUND(
         COUNT(DISTINCT o.order_id) FILTER (WHERE o.order_status = 'delivered')
         * 100.0 / NULLIF(COUNT(DISTINCT o.order_id), 0), 2
     )                                                                   AS fulfillment_rate_pct,
-
     ROUND(
         COUNT(DISTINCT o.order_id) FILTER (
             WHERE o.order_delivered_customer_date IS NOT NULL
@@ -30,18 +19,15 @@ SELECT
         NULLIF(COUNT(DISTINCT o.order_id) FILTER (WHERE o.order_status = 'delivered'), 0),
         2
     )                                                                   AS on_time_delivery_rate_pct,
-
     ROUND(AVG(
         EXTRACT(EPOCH FROM (
             o.order_delivered_customer_date - o.order_purchase_timestamp
         )) / 86400.0
     ) FILTER (WHERE o.order_delivered_customer_date IS NOT NULL)::NUMERIC, 1) AS avg_lead_time_days,
-
     ROUND(SUM(pay.payment_value)::NUMERIC, 2)                          AS total_revenue,
     ROUND(AVG(pay.payment_value)::NUMERIC, 2)                          AS avg_order_value,
     ROUND(AVG(r.review_score::NUMERIC), 2)                             AS avg_review_score,
     COUNT(DISTINCT o.customer_id)                                       AS unique_customers
-
 FROM orders o
 JOIN (
     SELECT order_id, SUM(payment_value) AS payment_value
@@ -52,10 +38,6 @@ WHERE o.order_purchase_timestamp IS NOT NULL
 GROUP BY DATE_TRUNC('month', o.order_purchase_timestamp)
 ORDER BY order_month;
 
-
--- =============================================================================
--- VIEW 2: SELLER SCORECARD DASHBOARD
--- =============================================================================
 
 DROP VIEW IF EXISTS vw_seller_scorecard;
 CREATE VIEW vw_seller_scorecard AS
@@ -97,10 +79,6 @@ SELECT *, RANK() OVER (ORDER BY composite_score DESC) AS performance_rank
 FROM scored
 ORDER BY composite_score DESC;
 
-
--- =============================================================================
--- VIEW 3: REGIONAL DEMAND DASHBOARD
--- =============================================================================
 
 DROP VIEW IF EXISTS vw_regional_demand;
 CREATE VIEW vw_regional_demand AS
@@ -154,10 +132,6 @@ GROUP BY c.customer_state, region
 ORDER BY total_revenue DESC;
 
 
--- =============================================================================
--- VIEW 4: CATEGORY DAILY ORDERS (for AI Forecast)
--- =============================================================================
-
 DROP VIEW IF EXISTS vw_category_daily_orders;
 CREATE VIEW vw_category_daily_orders AS
 SELECT
@@ -176,18 +150,7 @@ GROUP BY DATE_TRUNC('day', o.order_purchase_timestamp), category
 ORDER BY order_date, category;
 
 
--- =============================================================================
--- VERIFY
--- =============================================================================
-
-\echo ''
-\echo '=== View Row Counts ==='
 SELECT 'vw_exec_kpis'             AS view_name, COUNT(*) AS rows FROM vw_exec_kpis
-UNION ALL
-SELECT 'vw_seller_scorecard',      COUNT(*) FROM vw_seller_scorecard
-UNION ALL
-SELECT 'vw_regional_demand',       COUNT(*) FROM vw_regional_demand
-UNION ALL
-SELECT 'vw_category_daily_orders', COUNT(*) FROM vw_category_daily_orders;
-
-\echo 'Tableau views created successfully.'
+UNION ALL SELECT 'vw_seller_scorecard',      COUNT(*) FROM vw_seller_scorecard
+UNION ALL SELECT 'vw_regional_demand',       COUNT(*) FROM vw_regional_demand
+UNION ALL SELECT 'vw_category_daily_orders', COUNT(*) FROM vw_category_daily_orders;
