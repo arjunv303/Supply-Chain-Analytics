@@ -2,17 +2,17 @@
 
 **End-to-end supply chain analytics project using PostgreSQL, Python, and Tableau Public.**
 
-Dataset: [Olist Brazilian E-Commerce](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) — 100,000+ real orders, 9 relational tables
+Dataset: [Olist Brazilian E-Commerce](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce), 100,000+ real orders across 9 relational tables
 
 ---
 
 ## Why I Built This
 
-I wanted to go beyond the SQL and Tableau work I did at Fannie Mae and build something end-to-end on my own. Supply chain analytics caught my attention because it's data-heavy and touches every part of a business — from vendors to customers to regional demand.
+I wanted to go beyond the SQL and Tableau work I did at Fannie Mae and build something end-to-end on my own. Supply chain analytics caught my attention because it's data-heavy and touches every part of a business, from vendors to customers to regional demand.
 
 I used the Olist Brazilian E-Commerce dataset because it's a real production dataset with 9 relational tables, which forced me to think about joins, data quality, and schema design rather than working with a clean pre-built CSV.
 
-The AI forecasting piece (Prophet + Isolation Forest) was a stretch goal — I wanted to see how ML outputs could be integrated directly into a BI dashboard rather than staying in a notebook.
+The AI forecasting piece (Prophet + Isolation Forest) was a stretch goal. I wanted to see how ML outputs could be integrated directly into a BI dashboard rather than staying in a notebook.
 
 ---
 
@@ -29,19 +29,17 @@ The AI forecasting piece (Prophet + Isolation Forest) was a stretch goal — I w
 
 ## Dashboards
 
-### Dashboard 1 — Executive KPI Overview
+### Dashboard 1: Executive KPI Overview
 ![Executive KPI Dashboard](images/dashboard1_executive_kpi.png)
 
-### Dashboard 2 — Seller Performance Scorecard
+### Dashboard 2: Seller Performance Scorecard
 ![Seller Scorecard Dashboard](images/dashboard2_seller_scorecard.png)
 
-### Dashboard 3 — Regional Demand Map
+### Dashboard 3: Regional Demand Map
 ![Regional Demand Dashboard](images/dashboard3_regional_demand.png)
 
-### Dashboard 4 — AI-Powered Demand Forecast
+### Dashboard 4: AI-Powered Demand Forecast
 ![AI Forecast Dashboard](images/dashboard4_ai_forecast.png)
-
----
 
 ---
 
@@ -51,7 +49,7 @@ The AI forecasting piece (Prophet + Isolation Forest) was a stretch goal — I w
 |---|---|
 | Database | PostgreSQL 15+ |
 | Data Ingestion | Python, Pandas, SQLAlchemy |
-| AI Forecasting | Facebook Prophet (time-series ML) |
+| AI Forecasting | Facebook Prophet |
 | Anomaly Detection | Scikit-learn Isolation Forest |
 | Visualization | Tableau Public |
 
@@ -77,10 +75,10 @@ supply-chain-analytics/
 │
 ├── python/
 │   ├── requirements.txt
-│   ├── 01_load_to_postgres.py      # Ingest 9 CSVs → PostgreSQL
+│   ├── 01_load_to_postgres.py      # Ingest 9 CSVs into PostgreSQL
 │   ├── 02_demand_forecast.py       # Prophet 90-day demand forecast
 │   ├── 03_anomaly_detection.py     # Isolation Forest anomaly detection
-│   └── 04_export_for_tableau.py    # Export all data → CSVs for Tableau
+│   └── 04_export_for_tableau.py    # Export all data to CSVs for Tableau
 │
 └── tableau/
     └── DASHBOARD_BUILD_GUIDE.md    # Step-by-step Tableau build instructions
@@ -99,10 +97,7 @@ supply-chain-analytics/
 ### Step 2: Set Up PostgreSQL
 
 ```bash
-# Create the database
 createdb supply_chain
-
-# (Option A) Use Python loader — recommended
 cd python
 pip install -r requirements.txt
 ```
@@ -124,23 +119,9 @@ cd python
 python 01_load_to_postgres.py
 ```
 
-Expected output:
-```
-=== Row Counts ===
-customers        99,441
-sellers           3,095
-products         32,951
-orders           99,441
-order_items     112,650
-order_payments  103,886
-order_reviews    99,224
-geolocation    1,000,163
-```
-
 ### Step 4: Run SQL Analysis
 
 ```bash
-# Run all SQL scripts in order
 psql -U your_user -d supply_chain -f sql/00_schema_and_load.sql
 psql -U your_user -d supply_chain -f sql/01_data_quality.sql
 psql -U your_user -d supply_chain -f sql/07_tableau_views.sql
@@ -150,69 +131,39 @@ psql -U your_user -d supply_chain -f sql/07_tableau_views.sql
 
 ```bash
 cd python
-
-# Generate 90-day demand forecast (Prophet)
 python 02_demand_forecast.py
-
-# Detect demand anomalies (Isolation Forest)
 python 03_anomaly_detection.py
-
-# Export all data to CSV for Tableau
 python 04_export_for_tableau.py
 ```
 
-This creates 6 CSV files in `data/tableau_exports/`:
-- `exec_kpis.csv`
-- `seller_scorecard.csv`
-- `regional_demand.csv`
-- `category_daily.csv`
-- `forecast_output.csv`
-- `anomaly_flags.csv`
+This creates 6 CSV files in `data/tableau_exports/`: exec_kpis.csv, seller_scorecard.csv, regional_demand.csv, category_daily.csv, forecast_output.csv, anomaly_flags.csv
 
 ### Step 6: Build Tableau Dashboards
 
-See [`tableau/DASHBOARD_BUILD_GUIDE.md`](tableau/DASHBOARD_BUILD_GUIDE.md) for the complete step-by-step guide to building all 4 dashboards in Tableau Public.
+See [`tableau/DASHBOARD_BUILD_GUIDE.md`](tableau/DASHBOARD_BUILD_GUIDE.md) for the full guide.
 
 ---
 
 ## Key Analytical Techniques
 
 ### Composite Seller Scoring
-Vendors are scored using a weighted model:
-- **40%** — On-time delivery rate
-- **30%** — Average customer review score (normalized 0–100)
-- **30%** — Revenue rank (normalized 0–100)
-
-This gives each seller a single comparable score rather than looking at metrics in isolation.
+Vendors are scored using a weighted model: 40% on-time delivery rate, 30% average customer review score (normalized 0-100), 30% revenue rank (normalized 0-100). This gives each seller a single comparable score.
 
 ### Demand Forecasting with Prophet
-Facebook Prophet handles:
-- Weekly seasonality (weekday vs. weekend order patterns)
-- Yearly seasonality (holiday peaks)
-- Brazilian national holidays as external regressors
-- Multiplicative seasonality for e-commerce volume growth
+Facebook Prophet handles weekly seasonality (weekday vs. weekend patterns), yearly seasonality (holiday peaks), Brazilian national holidays, and multiplicative seasonality for e-commerce volume growth.
 
 ### Anomaly Detection with Isolation Forest
-Features used to detect demand anomalies:
-- Raw daily order volume
-- 7-day and 30-day rolling averages
-- Lag features (yesterday, last week same day)
-- Day-of-week encoding
-- Deviation from rolling average
-
-Flagged anomalies are automatically labeled (Black Friday, Carnaval, etc.) and visualized in Tableau.
+Features used: raw daily order volume, 7-day and 30-day rolling averages, lag features (yesterday, last week same day), day-of-week encoding, and deviation from rolling average. Flagged anomalies are labeled (Black Friday, Carnaval, etc.) and visualized in Tableau.
 
 ---
 
 ## SQL Highlights
 
-The SQL scripts cover the full analytical workflow — from data quality checks to KPI aggregation to materialized views for Tableau:
-
-- **Window functions:** `RANK()`, `LAG()`, `SUM() OVER()`, `MIN() OVER()`
-- **CTEs:** Multi-step analytical logic broken into readable named steps
-- **Conditional aggregation:** `COUNT(*) FILTER (WHERE ...)` for clean pivot-style metrics
-- **Date arithmetic:** `EXTRACT(EPOCH FROM ...)` for precise lead time calculations
-- **Materialized views:** Pre-aggregated views optimized for Tableau consumption
+- Window functions: `RANK()`, `LAG()`, `SUM() OVER()`, `MIN() OVER()`
+- CTEs: multi-step analytical logic broken into readable named steps
+- Conditional aggregation: `COUNT(*) FILTER (WHERE ...)` for pivot-style metrics
+- Date arithmetic: `EXTRACT(EPOCH FROM ...)` for lead time calculations
+- Materialized views: pre-aggregated views optimized for Tableau
 
 ---
 
@@ -230,22 +181,9 @@ The SQL scripts cover the full analytical workflow — from data quality checks 
 
 ---
 
-## Skills Demonstrated
-
-- Relational database design and normalization
-- Advanced SQL (CTEs, window functions, aggregations)
-- ETL pipeline development (Python/SQLAlchemy)
-- Time series forecasting (Facebook Prophet)
-- Unsupervised machine learning (Isolation Forest)
-- Business intelligence dashboard design (Tableau)
-- Supply chain KPI framework development
-- Vendor/supplier performance management analytics
-
----
-
 ## Data Source
 
 **Brazilian E-Commerce Public Dataset by Olist**
 - Source: [Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
 - License: CC BY-NC-SA 4.0
-- Size: ~9 tables, 100,000+ orders, 2016–2018
+- Size: ~9 tables, 100,000+ orders, 2016-2018
