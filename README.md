@@ -31,15 +31,19 @@ The AI forecasting piece (Prophet + Isolation Forest) was a stretch goal. I want
 
 ### Dashboard 1: Executive KPI Overview
 ![Executive KPI Dashboard](images/dashboard1_executive_kpi.png)
+[View on Tableau Public](https://public.tableau.com/views/SCExecutiveKPI/ExecutiveKPIDashboard)
 
 ### Dashboard 2: Seller Performance Scorecard
 ![Seller Scorecard Dashboard](images/dashboard2_seller_scorecard.png)
+[View on Tableau Public](https://public.tableau.com/views/SCSellerScorecard/SellerScorecardDashboard)
 
 ### Dashboard 3: Regional Demand Map
 ![Regional Demand Dashboard](images/dashboard3_regional_demand.png)
+[View on Tableau Public](https://public.tableau.com/views/SCRegionalDemand/RegionalDemandDashboard)
 
 ### Dashboard 4: AI-Powered Demand Forecast
 ![AI Forecast Dashboard](images/dashboard4_ai_forecast.png)
+[View on Tableau Public](https://public.tableau.com/views/SCAIForecast/AIDemandForecastDashboard)
 
 ---
 
