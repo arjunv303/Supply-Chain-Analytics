@@ -12,7 +12,7 @@ I wanted to go beyond the SQL and Tableau work I did at Fannie Mae and build som
 
 I used the Olist Brazilian E-Commerce dataset because it's a real production dataset with 9 relational tables, which forced me to think about joins, data quality, and schema design rather than working with a clean pre-built CSV.
 
-The AI forecasting piece (Prophet + Isolation Forest) was a stretch goal. I wanted to see how ML outputs could be integrated directly into a BI dashboard rather than staying in a notebook.
+I also wanted to push beyond traditional BI and bring in some ML, so I added demand forecasting with Prophet and anomaly detection with Isolation Forest to see how the outputs would look inside a real dashboard.
 
 ---
 
