@@ -43,22 +43,6 @@ The AI forecasting piece (Prophet + Isolation Forest) was a stretch goal — I w
 
 ---
 
-## Project Overview (Detail)
-
-| Dashboard | Business Question | Key Metrics |
-|---|---|---|
-| Executive KPI | How is the supply chain performing overall? | Fulfillment rate, on-time delivery %, lead time, revenue |
-| Seller Scorecard | Which vendors are reliable vs. at-risk? | Composite performance score, review score, delivery rate |
-| Regional Demand | Where is demand concentrated and growing? | Revenue by state, demand-supply gap, avg order value |
-| AI Demand Forecast | What does demand look like for the next 90 days? | Prophet forecast, anomaly flags, confidence intervals |
-
-| Dashboard | Business Question | Key Metrics |
-|---|---|---|
-| Executive KPI | How is the supply chain performing overall? | Fulfillment rate, on-time delivery %, lead time, revenue |
-| Seller Scorecard | Which vendors are reliable vs. at-risk? | Composite performance score, review score, delivery rate |
-| Regional Demand | Where is demand concentrated and growing? | Revenue by state, demand-supply gap, avg order value |
-| AI Demand Forecast | What does demand look like for the next 90 days? | Prophet forecast, anomaly flags, confidence intervals |
-
 ---
 
 ## Tech Stack
